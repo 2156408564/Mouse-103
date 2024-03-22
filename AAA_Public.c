@@ -634,6 +634,7 @@ u16 btn_scan()
 	if (!gpio_read(PIN_BTN_LEFT))
 	{
 		now_value |= MS_BTN_LEFT;
+		printf("Left mouse button is pressed\n");
 	}
 
 #if 1
@@ -644,12 +645,15 @@ u16 btn_scan()
 		now_value |= MS_BTN_MIDDLE;
 	} else if (button_get_status(PIN_BTN_MIDDLE) == 2){
 		now_value |= MS_BTN_K5;
+		 printf("F5 key is pressed\n");
 	}
 
 	if (button_get_status(PIN_BTN_RIGHT) == 1){
 		now_value |= MS_BTN_RIGHT;
+		printf("Right mouse button is pressed\n");
 	} else if (button_get_status(PIN_BTN_RIGHT) == 2){
 		now_value |= MS_BTN_K4;
+		 printf("F4 key is pressed\n");
 	}
 
 	gpio_write(PIN_BTN_OUT_VCC, 0);
