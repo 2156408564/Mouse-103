@@ -563,21 +563,21 @@ void audio_stop_by_btn(void)
 
 static inline u8 button_get_status(u32 pin)
 {
-    u8 value = 0; //no button press
+    u8 value = 0; //no button press	没有按键按下
 
-    if (!gpio_read(pin)) //connect gnd
+    if (!gpio_read(pin)) //connect gnd		引脚处于低电平状态
     {
         value = 1;
     } else {
-        gpio_setup_up_down_resistor(pin, PM_PIN_PULLDOWN_100K);
-        gpio_write(pin, 0);
-        sleep_us(10);
-        if (gpio_read(pin))
+        gpio_setup_up_down_resistor(pin, PM_PIN_PULLDOWN_100K);//确保引脚在未连接时保持低电平状态
+        gpio_write(pin, 0);//输出低电平
+        sleep_us(10);//等待引脚状态稳定。
+        if (gpio_read(pin))//如果引脚处于高电平状态
         {
             value = 2;
         }
-        gpio_write(pin, 1);
-        gpio_setup_up_down_resistor(pin, PM_PIN_PULLUP_1M);
+        gpio_write(pin, 1);//输出高电平
+        gpio_setup_up_down_resistor(pin, PM_PIN_PULLUP_1M);//确保引脚在未连接时，处于高电平状态
     }
 
     return value;
@@ -631,47 +631,47 @@ u16 btn_scan()
 	/******************************************/
 #endif
 
-	if (!gpio_read(PIN_BTN_LEFT))
+	if (!gpio_read(PIN_BTN_LEFT))// 检测PIN_BTN_LEFT 的 GPIO 引脚是否处于低电平状态。
 	{
-		now_value |= MS_BTN_LEFT;
+		now_value |= MS_BTN_K5;
 	}
 
-#if 1
+#if 1					//条件始终为真，包含在其中的代码将被编译。
 	/******************************************/
-	gpio_write(PIN_BTN_OUT_VCC, 1);
+	gpio_write(PIN_BTN_OUT_VCC, 1);//输出高电平
 
 	if (button_get_status(PIN_BTN_MIDDLE) == 1){
 		now_value |= MS_BTN_MIDDLE;
 	} else if (button_get_status(PIN_BTN_MIDDLE) == 2){
-		now_value |= MS_BTN_K5;
+		now_value |= MS_BTN_LEFT;
 	}
 
 	if (button_get_status(PIN_BTN_RIGHT) == 1){
-		now_value |= MS_BTN_RIGHT;
-	} else if (button_get_status(PIN_BTN_RIGHT) == 2){
 		now_value |= MS_BTN_K4;
+	} else if (button_get_status(PIN_BTN_RIGHT) == 2){
+		now_value |=MS_BTN_RIGHT;
 	}
 
-	gpio_write(PIN_BTN_OUT_VCC, 0);
+	gpio_write(PIN_BTN_OUT_VCC, 0);//输出低电平
 #endif
 	/******************************************/
 
     return  now_value;
 }
-
+//用于获取按钮的状态
 u8 btn_get_value()
 {
     u8 ret = 0;
-    _attribute_data_retention_user  static u8 debounce = 0;
-    u16 now_value = 0;
-    static u8 long_press = 0;
-    static u16 last_btn = 0;
-    _attribute_data_retention_user static u16 last_value = 0;
+    _attribute_data_retention_user  static u8 debounce = 0;//debounce 消抖处理
+    u16 now_value = 0;// 存储当前按钮的状态值
+    static u8 long_press = 0;//用于记录按钮是否为长按状态。	 
+    static u16 last_btn = 0;//记录上一个按钮的状态值
+    _attribute_data_retention_user static u16 last_value = 0;//记录上一次按钮状态的值，以便与当前值进行比较，判断是否有按键事件发生
     //static u32 self_msg_tick = 0;
 	static u8 miclink_btn[20] = {USER_DEFINE_CMD, PROTOCOL_HEARD, 0x04, 0, PROTOCOL_TAIL};
 
     now_value = btn_scan();
-
+/*在检测到按钮状态发生改变时，执行了重置空闲状态、消抖处理和记录当前按钮状态值的操作。*/
     if (last_value != now_value)
     {
         reset_idle_status();
@@ -679,22 +679,23 @@ u8 btn_get_value()
         last_value = now_value;
     }
 
-    if (debounce)
+    if (debounce)//按钮按下事件经过了消抖处理
     {
-        debounce++;
-        if (debounce == 3)
+        debounce++;//递增消抖计数器
+        if (debounce == 3)//确认按钮按下事件有效
         {
-            ret = NEW_KEY_EVENT_AAA;
-            btn_value = now_value;
-            btn_tick = clock_time();
-            my_printf_aaa("btn_value %x \r\n", btn_value);
-
+            ret = NEW_KEY_EVENT_AAA;//新的按键事件发生
+            btn_value = now_value;// 记录当前按钮的状态值
+            btn_tick = clock_time();// 记录按键事件发生时的时间戳
+            my_printf_aaa("btn_value %x \r\n", btn_value);//将当前按键的指打印出来
+				/*在特定按钮值的情况下，执行一系列的操作，
+				包括增加双击计数、记录双击时间戳、设置长按互联网标志以及记录上一个按钮值。*/
             if (btn_value == MS_BTN_KEY_WRITE || btn_value == MS_BTN_KEY_TRANSLATOR || btn_value == MS_BTN_SEARCH)
             {
                 has_double_click_cnt++;
                 double_click_tick = clock_time();
 				btn_long_internet_flag = 1;
-                last_btn = btn_value;
+                last_btn = btn_value;//记录上一次的按钮值
 				//my_printf_aaa("btn %1x\n", btn_value);
 				//top key also send K4
 				if (btn_value == MS_BTN_SEARCH) {
