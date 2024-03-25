@@ -164,13 +164,13 @@
         #define PIN_BTN_LEFT           GPIO_PB6
         #define PB6_INPUT_ENABLE        1
         #define PB6_OUTPUT_ENABLE       0
-        #define PB6_DATA_OUT            0
+        #define PB6_DATA_OUT            1
         #define PULL_WAKEUP_SRC_PB6     PM_PIN_PULLUP_1M
 
         #define PIN_BTN_RIGHT           GPIO_PB4
-        #define PB4_INPUT_ENABLE        0
-        #define PB4_OUTPUT_ENABLE       1
-        #define PB4_DATA_OUT            0
+        #define PB4_INPUT_ENABLE        1
+        #define PB4_OUTPUT_ENABLE       0
+        #define PB4_DATA_OUT            1
         #define PULL_WAKEUP_SRC_PB4     PM_PIN_PULLUP_1M
 
         #define PIN_BTN_MIDDLE          GPIO_PB5
@@ -182,14 +182,14 @@
         #define PIN_BTN_MODE            GPIO_PD2
         #define PD2_INPUT_ENABLE        1
         #define PD2_OUTPUT_ENABLE       0
-        #define PD2_DATA_OUT            1
+        #define PD2_DATA_OUT            0
         #define PULL_WAKEUP_SRC_PD2     PM_PIN_PULLUP_1M
 
 
         #define PIN_BTN_OUT_VCC          GPIO_PD3
-        #define PD3_INPUT_ENABLE        1
-        #define PD3_OUTPUT_ENABLE       0
-        #define PD3_DATA_OUT            1
+        #define PD3_INPUT_ENABLE        0
+        #define PD3_OUTPUT_ENABLE       1
+        #define PD3_DATA_OUT            0
         #define PULL_WAKEUP_SRC_PD3     PM_PIN_PULLUP_1M
 
         #define BTN_MATRIX {PIN_BTN_LEFT,PIN_BTN_RIGHT,PIN_BTN_MIDDLE, PIN_BTN_MODE}
