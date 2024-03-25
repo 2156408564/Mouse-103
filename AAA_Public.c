@@ -835,6 +835,7 @@ u8 btn_get_value()
 #endif
 
 #if WHEEL_FUN_ENABLE_AAA
+/*根据WHEEL_1和WHEEL_2引脚的状态，设置它们的唤醒方式为低电平或高电平，并可以选择是否启用唤醒功能。*/
 void wheel_set_wakeup_level_suspend(u8 enable)
 {
 #if 1
@@ -846,7 +847,7 @@ void wheel_set_wakeup_level_suspend(u8 enable)
     }
     else
     {
-        cpu_set_gpio_wakeup(PIN_WHEEL_1, 1, enable);
+        cpu_set_gpio_wakeup(PIN_WHEEL_1, 1, enable);//高电平唤醒
     }
 
     if (gpio_read(PIN_WHEEL_2))
@@ -885,11 +886,13 @@ void wheel_set_wakeup_level_deep()
     }
 #endif
 }
+/*对一些寄存器进行写入操作，设置了轮子相关硬件的一些参数和初始化操作*/
 static void wheel_init_hw()
 {
 
-    write_reg8(0xd2, WHEEL_ADDRES_D2); // different gpio different value
-    write_reg8(0xd3, WHEEL_ADDRES_D3);
+    write_reg8(0xd2, WHEEL_ADDRES_D2); // different gpio different value	向地址为0xD2的寄存器写入WHEEL_ADDRES_D2的值
+    write_reg8(0xd3, WHEEL_ADDRES_D3);//向地址为0xD3的寄存器写入WHEEL_ADDRES_D3的值。
+	 
 
 
     write_reg8(0xd7, 0x01);  //BIT(0) 0: 1¸ñ        1:  2¸ñ      	BIT(1)  wakeup enable
@@ -897,19 +900,21 @@ static void wheel_init_hw()
     write_reg8(0xd1, 0x01);  //filter   00-07     00 is best
 
 
-	reg_rst0 |= FLD_RST0_QDEC;   // for8258  power on 
-	reg_rst0 &= (~FLD_RST0_QDEC);
-    rc_32k_cal();
-    BM_SET(reg_clk_en0, FLD_CLK0_QDEC_EN);
+	reg_rst0 |= FLD_RST0_QDEC;   // for8258  power on 对reg_rst0寄存器执行按位或操作，将FLD_RST0_QDEC位置1，用于8258的上电。
+	reg_rst0 &= (~FLD_RST0_QDEC);//对reg_rst0寄存器执行按位与操作，将FLD_RST0_QDEC位清零，取消QDEC的复位状态。
+    rc_32k_cal();//执行RC 32K校准的操作。
+    BM_SET(reg_clk_en0, FLD_CLK0_QDEC_EN);//设置reg_clk_en0寄存器中FLD_CLK0_QDEC_EN位，使能QDEC时钟。
+	
 }
-
+/*在进行鼠标滚轮操作之前，首先对硬件进行一些准备工作，并返回当前的时间戳*/
 u32 mouse_wheel_prepare_tick(void)
 {
 
     write_reg8(0xd8, 0x01);
-    return clock_time();
+    return clock_time();//调用 clock_time 函数来获取当前的时间戳，并将其作为函数的返回值返回给调用者。
 }
-
+/*对鼠标滚轮进行处理，并返回处理后的结果。同时，在处理过程中会根据一定的条件来执行特定的操作。*/
+//函数接受一个参数 wheel_prepare_tick，处理鼠标滚轮的时间戳。
 _attribute_ram_code_ s8 mouse_wheel_process(u32 wheel_prepare_tick)
 {
     s8 ret = 0;
@@ -918,6 +923,7 @@ _attribute_ram_code_ s8 mouse_wheel_process(u32 wheel_prepare_tick)
 #if (MODULE_WATCHDOG_ENABLE)
 		wd_clear(); //clear watch dog
 #endif
+			//检查时间是否超过了 260 个时钟周期（约为 1/8 毫秒），如果超过则执行一系列操作，并跳出循环。
         if (clock_time_exceed(wheel_prepare_tick, 260))  //4 cylce is enough: 4*1/32k = 1/8 ms
         {
             write_reg8(0xd6, 0x01); //reset  d6[0]
@@ -925,7 +931,7 @@ _attribute_ram_code_ s8 mouse_wheel_process(u32 wheel_prepare_tick)
             break;
         }
     }
-
+//根据宏定义来选择不同的鼠标滚轮处理方式，并返回相应的结果。
 #if 1//(WHEEL_TWO_STEP_PROC)
     _attribute_data_retention_user static signed char accumulate_wheel_cnt;
     _attribute_data_retention_user static signed char wheel_cnt;
@@ -949,6 +955,7 @@ _attribute_ram_code_ s8 mouse_wheel_process(u32 wheel_prepare_tick)
 }
 #if PM_DEEPSLEEP_RETENTION_ENABLE
 s8 wheel_vaule = 0;
+//读取两个引脚（PIN_WHEEL_1 和 PIN_WHEEL_2）的状态,分别表示鼠标滚轮向左或向右滚动的情况，并将读取的状态值存储在变量 wheel_now 中。
 _attribute_ram_code_ u8 wheel_get_value_1()
 {
     u8 ret = 0;
@@ -1042,7 +1049,7 @@ void hw_init()
 
 }
 
-
+//处理蓝牙通知数据的逻辑
 void ble_notify_data_proc_aaa()
 {
     u8 need_ms_notify = 0;
@@ -1051,8 +1058,8 @@ void ble_notify_data_proc_aaa()
 	u8 status = 0;
     u8 slef_msg[21];
 
-    memset(slef_msg, 0, sizeof(slef_msg));
-
+    memset(slef_msg, 0, sizeof(slef_msg));//使用 memset 函数将 slef_msg 数组清零
+//根据条件判断，如果需要弹出互联网窗口 (need_pop_internet)，则根据是否需要回到桌面（need_back_to_desktop），调用相应的函数 five_sec_win_r_internet() 或 five_sec_pop_internet()。
 	if (need_pop_internet) {
 		if(need_win_R_internet){
 			five_sec_win_r_internet();
@@ -1064,11 +1071,14 @@ void ble_notify_data_proc_aaa()
 	if (need_back_to_desktop) {
 		back_to_desktop();
 	}
-
+	//判断条件：如果键鼠 FIFO 非空、鼠标数据中的 x、y 或滚轮数据不为零，则进入条件判断。
     if ((my_fifo_get(&fifo_km)!=0) || ms_data.x || ms_data.y || ms_data.wheel)
     {
-        loop_cnt = 0;
+        loop_cnt = 0;//将 loop_cnt 置零。
+			//如果键鼠 FIFO 非空，获取 FIFO 中的数据并进行处理：
 
+/*如果数据的第一个字节是用户定义的命令（USER_DEFINE_CMD），则将数据拷贝到 slef_msg 数组中。如果数据的第一个
+字节是语音命令（VOICE_CMD），则暂时不做处理。否则，表示是鼠标数据，将数据的第一个字节保存为按钮状态 buf.btn。*/
         if (my_fifo_get(&fifo_km)!=0)
         {
             u8 *p =  my_fifo_get(&fifo_km);
@@ -1084,9 +1094,9 @@ void ble_notify_data_proc_aaa()
         }
         else
         {
-            buf.btn = ms_data.btn;
+            buf.btn = ms_data.btn;//如果键鼠 FIFO 为空，则将鼠标数据中的按钮状态赋给 buf.btn。
         }
-
+		//将鼠标数据中的 x、y 和滚轮数据分别赋给 buf.x、buf.y、buf.wheel。
         buf.x = ms_data.x;
         buf.y = ms_data.y;
         buf.wheel = ms_data.wheel;
@@ -1095,18 +1105,17 @@ void ble_notify_data_proc_aaa()
 
 	if(active_disconnect_reason)
 	{
-		 buf.btn =0;
-		 need_ms_notify = 1;
-         blc_gatt_pushHandleValueNotify(BLS_CONN_HANDLE, HID_MOUSE_REPORT_INPUT_DP_H, &buf.btn, MOUSE_DATA_LEN_AAA);
-		 bls_ll_terminateConnection(HCI_ERR_REMOTE_USER_TERM_CONN);
-		 return;
-    }
-
-    txFifoNumber = blc_ll_getTxFifoNumber();
+		 buf.btn =0;//将 buf.btn 置为 0。
+		 need_ms_notify = 1;//将 need_ms_notify 设置为 1，表示需要通知蓝牙发送数据。
+    txFifoNumber = blc_ll_getTxFifoNumber();//获取当前可用的传输 FIFO 数量 txFifoNumber。
+    /*如果需要进行蓝牙通知（need_ms_notify 为真），并且当前可用的传输 FIFO 数量小于 32*/
     if (need_ms_notify)
     {
 		if (txFifoNumber < 32)
         {
+        /*如果 slef_msg 中的第一个字节是用户定义命令（USER_DEFINE_CMD），则根据具体命令做相应处理：
+        如果是需要返回桌面的命令（NEED_BACK_HOME），则将 need_back_to_desktop 置为 1；
+        否则，调用 blc_gatt_pushHandleValueNotify 函数通知蓝牙发送数据。*/
 			if (slef_msg[0] == USER_DEFINE_CMD) {
                 /*KEYA or KEYB*/
 				if (slef_msg[3] == NEED_BACK_HOME) {
@@ -1117,30 +1126,44 @@ void ble_notify_data_proc_aaa()
 				}
 			} /*else if (slef_msg[0] == VOICE_CMD) {
                 voice data never through there
-            }*/else {
+            }*/else {	//如果 slef_msg 中的第一个字节不是用户定义命令，则将鼠标数据作为 BLE 鼠标数据发送给蓝牙。
                 /* ble mouse data */
 	            status = blc_gatt_pushHandleValueNotify(BLS_CONN_HANDLE, HID_MOUSE_REPORT_INPUT_DP_H, &buf.btn, MOUSE_DATA_LEN_AAA);
 			}
+				/*根据通知的状态 status 判断通知是否发送成功：*/
+//如果通知发送成功（status == BLE_SUCCESS），则从键鼠 FIFO 中弹出数据，并将鼠标滚轮数据清零。
             if (status == BLE_SUCCESS)
             {
                 if (my_fifo_get(&fifo_km)!=0)
                     my_fifo_pop(&fifo_km);
                 ms_data.wheel = 0;
             }
+				//如果通知发送失败，则打印通知失败的原因。
             else
             {
                 printf("notify_fail_reason=%x\r\n", status);
             }
         }
 
+    } 
+	 //在发送完蓝牙通知后，立即终止当前蓝牙连接，并退出当前函数。
+		blc_gatt_pushHandleValueNotify(BLS_CONN_HANDLE, HID_MOUSE_REPORT_INPUT_DP_H, &buf.btn, MOUSE_DATA_LEN_AAA);
+		 bls_ll_terminateConnection(HCI_ERR_REMOTE_USER_TERM_CONN);//导致蓝牙连接被远程用户终止。
+		 return;
     }
+//在处理电池信息通知的逻辑，针对电池数据进行通知给蓝牙连接的设备
+//首先检查 BATT_CHECK_ENABLE 宏是否定义，如果定义了，则继续执行下面的逻辑。
 #if BATT_CHECK_ENABLE
+//如果需要发送电池数据通知（need_batt_data_notify 为真）
     else if (need_batt_data_notify)
     {
+    //当前可用的传输 FIFO 数量小于 9
         if (txFifoNumber < 9)
         {
+        //调用 blc_gatt_pushHandleValueNotify 函数，向指定的连接句柄（BLS_CONN_HANDLE）发送电池电量数据（my_batVal）到 BATT_LEVEL_INPUT_DP_H 属性，数据长度为 1。
             status = blc_gatt_pushHandleValueNotify(BLS_CONN_HANDLE, BATT_LEVEL_INPUT_DP_H, my_batVal, 1);
-            if (status == BLE_SUCCESS)
+				//如果通知发送成功（status == BLE_SUCCESS），则将 need_batt_data_notify 置为 0，表示电池数据已成功发送。
+				if (status == BLE_SUCCESS)
             {
                 need_batt_data_notify = 0;
             }
@@ -1152,11 +1175,14 @@ void ble_notify_data_proc_aaa()
 
 
 
-
+//处理鼠标的 XY 坐标倍增逻辑
 void mouse_xy_multiple()
 {
+//首先检查 MUTI_SENSOR_ENABLE 宏是否定义，如果定义了，则继续执行下面的逻辑。
 #if MUTI_SENSOR_ENABLE
+//定义了两个整型变量 x 和 y，用于存储鼠标的 X 和 Y 坐标。
     s32 x = 0, y = 0;
+//如果 xy_multiple_flag 等于 MULTIPIPE_1_DOT_5，则将鼠标的 X 和 Y 坐标分别乘以 3/2。
     if (xy_multiple_flag == MULTIPIPE_1_DOT_5)
     {
         x = ms_data.x;
@@ -1165,6 +1191,7 @@ void mouse_xy_multiple()
         y = (y * 3) / 2;
         ms_data.x = x;
         ms_data.y = y;
+	//如果 xy_multiple_flag 等于 MULTIPIPE_2_DOT_0，则将鼠标的 X 和 Y 坐标分别乘以 4/2（即乘以 2）。
     }else if(xy_multiple_flag == MULTIPIPE_2_DOT_0)
     {
 		x = ms_data.x;
@@ -1173,6 +1200,7 @@ void mouse_xy_multiple()
         y = (y * 4) / 2;
         ms_data.x = x;
         ms_data.y = y;
+//如果 xy_multiple_flag 等于 MULTIPIPE_2_DOT_5，则将鼠标的 X 和 Y 坐标分别乘以 5/2。
 	}else if(xy_multiple_flag == MULTIPIPE_2_DOT_5)
 	{
 		x = ms_data.x;
@@ -1184,91 +1212,105 @@ void mouse_xy_multiple()
 	}
 #endif
 }
-
+//在 RF 模式下处理鼠标任务
 void mouse_task_when_rf()
 {
+//首先检查 SENSOR_FUN_ENABLE_AAA 宏是否定义，如果定义了，则继续执行下面的逻辑。
 #if SENSOR_FUN_ENABLE_AAA
+//在条件判断中调用 OPTSensor_motion_report(0) 函数，如果返回真（非零）
     if (OPTSensor_motion_report(0))
     {
+    //检查 ms_data 结构体中的 X 或 Y 坐标是否不为零
 		if(ms_data.x||ms_data.y)
 		{
-        has_new_key_event |= SENSOR_DATA_EVENT_AAA;
+        has_new_key_event |= SENSOR_DATA_EVENT_AAA;//将 has_new_key_event 标志位按位或上 SENSOR_DATA_EVENT_AAA，表示发生了传感器数据事件 AAA。
 
-        mouse_xy_multiple();
-        check_sensor_dircet(user_cfg.sensor_direct);
-        adaptive_smoother();
+        mouse_xy_multiple();//对鼠标的 X 和 Y 坐标进行倍增操作。
+        check_sensor_dircet(user_cfg.sensor_direct);//检查传感器方向并进行处理。
+        adaptive_smoother();//进行自适应平滑处理。
 		}
     }
+	 //如果 OPTSensor_motion_report(0) 返回假（零），则将 ms_data 结构体中的 X 和 Y 坐标都设置为 0。
     else
     {
         ms_data.x = 0;
         ms_data.y = 0;
     }
 #endif
+//将 Draw_a_square_test() 的返回值与 has_new_key_event 进行按位或运算，并将结果赋值给 has_new_key_event。
     has_new_key_event |= Draw_a_square_test();
 }
-
+//模拟绘制一个正方形的过程，通过控制 flag 和 step 来改变鼠标数据的 x 和 y 值，最终返回一个表示传感器数据事件的标志。
 u8  Draw_a_square_test(void)
 {
+//在函数内部定义了两个静态变量 x 和 flag，分别用于记录状态和计数。其中，x 用于控制计数，flag 用于标记当前状态。
     _attribute_data_retention_user static int x = 0;
     _attribute_data_retention_user static u8 flag = 0;
-    int step = 4;
+    int step = 4;//初始化变量 step 为 4。
+    //如果 auto_draw_flag 等于 0，则直接返回 0，不执行后续逻辑。
    if(auto_draw_flag==0)
    {
    		return 0;
    }
+	//每次函数调用，x 自增 1。
     x++;
+	// x 大于等于 50 
     if (x >= 50)
     {
-        x = 0;
-        flag++;
+        x = 0;//将 x 重置为 0
+        flag++;//增加 flag 的值
+		  //如果 flag 大于 
         if (flag > 3)
         {
-            flag = 0;
+            flag = 0;//将其重置为 0
         }
 
     }
+	 //当 flag 为 0 时，将 x 设为 step，y 设为 0。
     if (flag == 0)
     {
         ms_data.x = step;
         ms_data.y = 0;
     }
+	 //当 flag 为 1 时，将 x 设为 0，y 设为 step。
     else if (flag == 1)
     {
         ms_data.x = 0;
         ms_data.y = step;
     }
+	 //当 flag 为 2 时，将 x 设为 -step，y 设为 0。
     else if (flag == 2)
     {
         ms_data.x = -step;
         ms_data.y = 0;
     }
+	 //当 flag 为 3 时，将 x 设为 0，y 设为 -step。
     else if (flag == 3)
     {
         ms_data.x = 0;
         ms_data.y = -step;
     }
-    return SENSOR_DATA_EVENT_AAA;
+    return SENSOR_DATA_EVENT_AAA;//最后返回 SENSOR_DATA_EVENT_AAA，表示发生了传感器数据事件 AAA。
 }
-
+//清除配对标志位
 void clear_pair_flag()
 {
     pair_flag = 0;
     analog_write(USED_DEEP_ANA_REG1, ana_reg1_aaa & CLEAR_PAIR_ANA_FLAG);
 }
-
+//设置配对标志位
 void set_pair_flag()
 {
     pair_flag = 1;
     analog_write(USED_DEEP_ANA_REG1, ana_reg1_aaa | PAIR_ANA_FLG);
 }
-
+//向DEEP_ANA_REG0 寄存器写入数据
 void write_deep_ana0(u8 buf)
 {
     deep_flag = buf;
     analog_write(DEEP_ANA_REG0, buf);
 }
-
+//用户重启
 void user_reboot(u8 reason)
 {
     write_deep_ana0(reason);
@@ -1276,77 +1318,85 @@ void user_reboot(u8 reason)
 }
 
 
-
+//获取蓝牙数据报告
 u8 get_ble_data_report_aaa(void)
 {
 #if WHEEL_FUN_ENABLE_AAA
-    u32 wheel_prepare_tick = mouse_wheel_prepare_tick();
+    u32 wheel_prepare_tick = mouse_wheel_prepare_tick();//获取滚轮准备时间
 #endif
 
 #if BUTTON_FUN_ENABLE_AAA
-    has_new_key_event |= btn_get_value();
+    has_new_key_event |= btn_get_value();//获取按钮的值，并将结果与 has_new_key_event 进行按位或操作。
 #endif
 
 #if SENSOR_FUN_ENABLE_AAA
+//判断是否有传感器数据报告；
     if (OPTSensor_motion_report(0))
     {
-        has_new_key_event |= SENSOR_DATA_EVENT_AAA;
+        has_new_key_event |= SENSOR_DATA_EVENT_AAA;//表示发生了传感器数据事件 AAA；
         mouse_xy_multiple();
-        check_sensor_dircet(user_cfg.sensor_direct);
+        check_sensor_dircet(user_cfg.sensor_direct);//检查传感器方向；
         adaptive_smoother();
     }
+	 //如果没有传感器数据报告，则将 ms_data.x 和 ms_data.y 设置为 0
     else
     {
-        ms_data.x = 0;
-        ms_data.y = 0;
+        ms_data.x = 5;
+        ms_data.y = 5;
     }
 #endif
-
+//测试绘制一个正方形的功能
 #if TEST_DRAW_A_SQUARE
+/*检查当前蓝牙链路状态是否为连接状态，
+通过调用 blc_ll_getCurrentState() 函数获取当前的链路状态，如果状态为 BLS_LINK_STATE_CONN；
+检查蓝牙连接状态是否为已连接状态 T5S_CONNECTED_STATUS_AAA；*/
         if ((blc_ll_getCurrentState() == BLS_LINK_STATE_CONN) && ((ble_status_aaa == T5S_CONNECTED_STATUS_AAA)))
         {
-            has_new_key_event |= Draw_a_square_test();
+            has_new_key_event |= Draw_a_square_test();//绘制一个正方形,并将返回值与 has_new_key_event 进行按位或操作。
         }
 #endif
-
+/*这段代码用于处理滚轮功能、生成鼠标事件报告，并在有新键盘事件发生时更新相关状态和数据。*/
 #if WHEEL_FUN_ENABLE_AAA
-    has_new_key_event |= wheel_get_value(wheel_prepare_tick);
+    has_new_key_event |= wheel_get_value(wheel_prepare_tick);//获取滚轮值，并将返回值与 has_new_key_event 进行按位或操作。
 #endif
+//代码检查是否有新的键盘事件发生（通过按位与运算符 & 判断是否存在 NEW_KEY_EVENT_AAA 事件）
+//如果存在新的键盘事件
     if (has_new_key_event & (NEW_KEY_EVENT_AAA))
     {
-        has_new_report_aaa |= HAS_MOUSE_REPORT;
-		my_fifo_push(&fifo_km, &ms_data.btn, sizeof(mouse_data_t));
+        has_new_report_aaa |= HAS_MOUSE_REPORT;//将 HAS_MOUSE_REPORT 标记位设置到 has_new_report_aaa 中，表示有鼠标报告；
+		my_fifo_push(&fifo_km, &ms_data.btn, sizeof(mouse_data_t));//将鼠标数据 ms_data.btn 推入 fifo_km 队列中，使用 my_fifo_push 函数；
     }
-    return has_new_key_event;
+    return has_new_key_event;//函数返回 has_new_key_event，即更新后的事件标志位。
 
 }
 
+//获取24G数据报告，并在满足条件编译宏的情况下处理滚轮和按钮事件。
 void get_24g_data_report_aaa()
 {
 #if WHEEL_FUN_ENABLE_AAA
-    u32 wheel_prepare_tick;
-    wheel_prepare_tick = mouse_wheel_prepare_tick();
+    u32 wheel_prepare_tick;//声明并定义了一个 u32 类型的变量 wheel_prepare_tick；
+    wheel_prepare_tick = mouse_wheel_prepare_tick();//获取鼠标滚轮的准备时间，并将返回值赋给 wheel_prepare_tick 变量。
 #endif
 
 
 #if BUTTON_FUN_ENABLE_AAA
-    has_new_key_event |= btn_get_value();
+    has_new_key_event |= btn_get_value();//函数获取按钮的值，并将返回值与 has_new_key_event 进行按位或操作。
 #endif
 
 #if WHEEL_FUN_ENABLE_AAA
-    has_new_key_event |= wheel_get_value(wheel_prepare_tick);
+    has_new_key_event |= wheel_get_value(wheel_prepare_tick);//函数获取滚轮的值，并将返回值与 has_new_key_event 进行按位或操作。
 #endif
 }
-
+//根据 Flash 制造商 ID 不同，对 Flash 的特定区域进行锁定操作，以确保数据的安全性和完整性。
 #if (APP_FLASH_LOCK_ENABLE)
-
+//数据保持属性的声明，
 _attribute_data_retention_ unsigned int mid;//= flash_read_mid();
 _attribute_ram_code_ void flash_lock_init(void)
 {
 
     printf("flash_lock_init\r\n");
 
-	mid = flash_read_mid();
+	mid = flash_read_mid();//函数获取 Flash 的制造商 ID，并将其存储在 mid 变量中，然后打印出来。
 
 	printf("mid flash:%x\r\n",mid);
 
@@ -1356,10 +1406,12 @@ _attribute_ram_code_ void flash_lock_init(void)
         if (0 == (flash_read_status_mid1160c8() & FLASH_WRITE_STATUS_BP_MID1160C8))
             flash_lock_mid1160c8(FLASH_LOCK_LOW_64K_MID1160C8);
 		break;*/
+	//如果 mid 的值为 0x1360c8，则检查 Flash 状态是否满足特定条件，若满足则 锁定 Flash 的低 256K 区域。
 	case 0x1360c8:
         if (0 ==  (flash_read_status_mid1360c8() & FLASH_WRITE_STATUS_BP_MID1360C8));
             flash_lock_mid1360c8(FLASH_LOCK_LOW_256K_MID1360C8);
 		break;
+//如果 mid 的值为 0x1460c8，同样检查 Flash 状态是否满足特定条件，若满足则锁定 Flash 的低 768K 区域。
 	case 0x1460c8:
         if (0 == (flash_read_status_mid1460c8() & FLASH_WRITE_STATUS_BP_MID1460C8))
             flash_lock_mid1460c8(FLASH_LOCK_LOW_768K_MID1460C8);
